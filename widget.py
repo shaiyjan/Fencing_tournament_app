@@ -1,10 +1,12 @@
 from PySide6.QtWidgets import QGridLayout,QFileDialog, QWidget,QPushButton, QVBoxLayout, QHBoxLayout
 
-from addwindow import general_button_group, add_widget
+from addwindow import add_widget
 from delayed_widget import delayed_widget
 
 import csv
 import pymongo
+
+from utility import connect_database
 
 class Widget(QWidget):
     def __init__(self,parent,menu_toggle_size):
@@ -54,6 +56,8 @@ class LWidget(QWidget):
         delay_window.show()
 
 def read_to_db(files):
+
+
     list_of_dict=[]
     for file in files:
         with open(file,encoding="UTF-16 LE") as f:
@@ -62,10 +66,9 @@ def read_to_db(files):
                 line["recipe"]="no"
                 line["attandence"]="no"
                 line["attest"]="no"
+                line['id'] = line['\ufeffid']
+                del line['\ufeffid']
                 list_of_dict.append(line)
 
-    client = pymongo.MongoClient("localhost:27017")
-    db = client["Tournament"]
-    collection = db["Fencer"]
-
+    collection = connect_database()
     collection.insert_many(list_of_dict)

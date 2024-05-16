@@ -5,6 +5,7 @@ from widget import Widget
 from administration_widget import administation_layout
 
 from screeninfo import screeninfo
+
 screenheight=screeninfo.get_monitors()[0].height
 screenwidth=screeninfo.get_monitors()[0].width
 
