@@ -16,7 +16,7 @@ def create_person_button(list):
             query = {"competition":{"$regex": "^.*"+button[2]+".*$"}}
             fencer_list_cursor=collection.find(query)
             for fencer in fencer_list_cursor:
-                fencer_button=fencer_button_class(fencer)
+                fencer_button=fencer_button_class(fencer,x=None,y=None)
                 button_list.append(fencer_button)
     return button_list
 
@@ -54,6 +54,10 @@ class add_widget(QWidget):
     def prev_clicked(self):
         self.ind -=1
         self.super_layout.setCurrentIndex(self.ind)
+        xpos = self.super_layout.currentWidget().x()
+        ypos = self.super_layout.currentWidget().y()
+        self.super_layout.setCurrentIndex(self.ind)
+        self.super_layout.currentWidget().move(xpos,ypos)
 
     def cancel_clicked(self):
         self.super_layout.currentWidget().close()    
@@ -252,14 +256,12 @@ class group_selection_wid(QWidget):
         self.selection_wid = QWidget()
         self.selection_layout=QGridLayout()
         self.selection_wid.setLayout(self.selection_layout)
-        #self.selection_layout=QVBoxLayout()
 
         global_horizintal_layout.addWidget(menu_wid)
         global_horizintal_layout.addWidget(self.selection_wid)
         self.setLayout(global_horizintal_layout)
 
-        self.setMinimumWidth(882)
-        #self.setMinimumHeight(410)
+        self.setMinimumWidth(890)
 
     def value_changed(self):
         clearLayout(self.selection_layout)
@@ -267,19 +269,23 @@ class group_selection_wid(QWidget):
         self.fencer_button_list = create_person_button(self.par.wid_first.button_list)
         list_len=len(self.fencer_button_list)
         number_of_groups=int(self.set_group_amount_wid.text())
-        #list_len//6+bool(list_len%int(self.set_group_amount_wid.text()))
         people_per_group=int(self.set_group_size_wid.text())
         
         layout=self.selection_layout
-
         row=0
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         for i in range(number_of_groups):
-            layout.addWidget(QLabel(f"Gruppe {i+1}:"),row,0,1,6,alignment=Qt.AlignmentFlag.AlignTop)
+            wid=QLabel(f"Gruppe {i+1}:")
+            layout.addWidget(wid,
+                        row,
+                        0,
+                        1,6)
             row +=1
             for i in range(people_per_group):
-                button=QPushButton()
-                button.setFixedSize(QSize(100,60))
-                layout.addWidget(button,row+ i//6, i%6,alignment=Qt.AlignmentFlag.AlignTop)
+                button=drag_on_me_button(x=row+ i//6,y=i%6)
+                layout.addWidget(button,
+                        row+ i//6,
+                        i%6)
             row += people_per_group // 6 +1
         layout.addWidget(QLabel("Nicht zugeordnet:"),row,0,1,6)
         row+=1
@@ -291,32 +297,40 @@ class group_selection_wid(QWidget):
                 ycoord,
                 alignment=Qt.AlignmentFlag.AlignTop
                 )
-        
+            self.fencer_button_list[i].x=row+xcoord
+            self.fencer_button_list[i].y=ycoord
         self.updateGeometry()
 
+class drag_on_me_button(QPushButton):
+    def __init__(self,*args,x,y,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.x=x
+        self.y=y
+        self.setFixedSize(QSize(100,60))
+        self.setAcceptDrops(True)
 
+    def dragEnterEvent(self, e):
+        e.accept()
 
+    def dropEvent(self, e):
+        layout=self.parent().layout() # type:ignore is of type 
+        #layout GridLayout
+        x,y = e.source().x,e.source().y
 
+        layout.addWidget(e.source(),self.x,self.y)
+        button=drag_on_me_button(x=x,y=y)
+        layout.addWidget(button,x,y)
+        self.parent().updateGeometry() #type: ignore
+        self.destroy()
 
-class group_window_data:
-    def __init__(self,i,group_member_label,group_member_layout):
-        self.group_number = i
-        self.label = group_member_label
-        self.layout = group_member_layout
-        self.members=[]
-
-    def add_one(self,addition):
-        self.members.append(addition)
-
-    def add_many(self,list_in):
-        self.members.extend(list_in)
-
-    def del_on(self,removal):
-        self.members.pop(removal)
+        e.accept()
 
 class fencer_button_class(QPushButton):
-    def __init__(self,fencer):
+    def __init__(self,fencer,x,y):
         super().__init__()
+        self.setAcceptDrops(True)
+        self.x=x
+        self.y=y
         self.setFixedSize(QSize(100,60))
         self.fencer=fencer
         self.id=fencer["_id"]
@@ -328,4 +342,32 @@ class fencer_button_class(QPushButton):
         layout.addWidget(QLabel(age),2,1)
         self.setLayout(layout)
 
+    #copies data to mime on left-click and hold
+    def mouseMoveEvent(self, e):
+        if e.buttons() == Qt.LeftButton: #type: ignore
+            drag = QDrag(self)
+            mime = QMimeData()
+            mime.setText(str(self.layout().indexOf(self)))
+            drag.setMimeData(mime)
+            drag.exec(Qt.MoveAction) # type: ignore 
+
+    def dragEnterEvent(self, e):
+        e.accept()
+
+    def dropEvent(self, e):
+        layout=self.parent().layout() # type:ignore is of type 
+        #layout GridLayout
+        x,y = e.source().x,e.source().y
+
+        layout.addWidget(e.source(),self.x,self.y)
+        button=drag_on_me_button(x=x,y=y)
+        layout.addWidget(button,x,y,alignment=Qt.AlignmentFlag.AlignTop)
+        self.parent().updateGeometry() #type: ignore
+        self.destroy()
+
+        e.accept()
+
+    
+
+    
 
