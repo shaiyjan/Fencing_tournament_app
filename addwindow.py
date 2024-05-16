@@ -16,7 +16,7 @@ def create_person_button(list):
             query = {"competition":{"$regex": "^.*"+button[2]+".*$"}}
             fencer_list_cursor=collection.find(query)
             for fencer in fencer_list_cursor:
-                fencer_button=fencer_button_class(fencer,x=None,y=None)
+                fencer_button=fencer_button_class(fencer=fencer,x=None,y=None)
                 button_list.append(fencer_button)
     return button_list
 
@@ -50,7 +50,10 @@ class add_widget(QWidget):
             ga=int(self.wid_sec.set_group_size_wid.text())
             new_size = str(max(tz // ga + bool(tz%ga),1))
             self.wid_sec.set_group_amount_wid.setText(new_size)   
-
+        if self.ind == 2:
+            ...
+             
+                    
     def prev_clicked(self):
         self.ind -=1
         self.super_layout.setCurrentIndex(self.ind)
@@ -273,33 +276,32 @@ class group_selection_wid(QWidget):
         
         layout=self.selection_layout
         row=0
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.selection_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         for i in range(number_of_groups):
             wid=QLabel(f"Gruppe {i+1}:")
-            layout.addWidget(wid,
+            self.selection_layout.addWidget(wid,
                         row,
                         0,
                         1,6)
             row +=1
             for i in range(people_per_group):
                 button=drag_on_me_button(x=row+ i//6,y=i%6)
-                layout.addWidget(button,
+                self.selection_layout.addWidget(button,
                         row+ i//6,
                         i%6)
-            row += people_per_group // 6 +1
-        layout.addWidget(QLabel("Nicht zugeordnet:"),row,0,1,6)
+            row += people_per_group // 6
+        self.selection_layout.addWidget(QLabel("Nicht zugeordnet:"),row,0,1,6)
         row+=1
+
         for i in range(list_len):
             xcoord= i // 6
             ycoord= i  % 6
-            layout.addWidget(self.fencer_button_list[i],
+            self.selection_layout.addWidget(self.fencer_button_list[i],
                 row+xcoord,
-                ycoord,
-                alignment=Qt.AlignmentFlag.AlignTop
-                )
+                ycoord )
             self.fencer_button_list[i].x=row+xcoord
             self.fencer_button_list[i].y=ycoord
-        self.updateGeometry()
+
 
 class drag_on_me_button(QPushButton):
     def __init__(self,*args,x,y,**kwargs):
@@ -309,45 +311,11 @@ class drag_on_me_button(QPushButton):
         self.setFixedSize(QSize(100,60))
         self.setAcceptDrops(True)
 
-    def dragEnterEvent(self, e):
-        e.accept()
-
-    def dropEvent(self, e):
-        layout=self.parent().layout() # type:ignore is of type 
-        #layout GridLayout
-        x,y = e.source().x,e.source().y
-
-        layout.addWidget(e.source(),self.x,self.y)
-        button=drag_on_me_button(x=x,y=y)
-        layout.addWidget(button,x,y)
-        self.parent().updateGeometry() #type: ignore
-        self.destroy()
-
-        e.accept()
-
-class fencer_button_class(QPushButton):
-    def __init__(self,fencer,x,y):
-        super().__init__()
-        self.setAcceptDrops(True)
-        self.x=x
-        self.y=y
-        self.setFixedSize(QSize(100,60))
-        self.fencer=fencer
-        self.id=fencer["_id"]
-        layout=QGridLayout()
-        weapon, gender, age, sing_team = fencer["competition"].strip().split()
-        layout.addWidget(QLabel(fencer["lastname"]),0,0,1,2)
-        layout.addWidget(QLabel(fencer["firstname"]),1,0,1,2)
-        layout.addWidget(QLabel(weapon),2,0)
-        layout.addWidget(QLabel(age),2,1)
-        self.setLayout(layout)
-
     #copies data to mime on left-click and hold
     def mouseMoveEvent(self, e):
         if e.buttons() == Qt.LeftButton: #type: ignore
             drag = QDrag(self)
             mime = QMimeData()
-            mime.setText(str(self.layout().indexOf(self)))
             drag.setMimeData(mime)
             drag.exec(Qt.MoveAction) # type: ignore 
 
@@ -355,17 +323,36 @@ class fencer_button_class(QPushButton):
         e.accept()
 
     def dropEvent(self, e):
-        layout=self.parent().layout() # type:ignore is of type 
-        #layout GridLayout
+        layout=self.parent().layout() #type:ignore 
+        #layout: QGridLayout
         x,y = e.source().x,e.source().y
+        x_self,y_self=self.x,self.y
 
+        e.source().x=self.x
+        e.source().y=self.y
         layout.addWidget(e.source(),self.x,self.y)
-        button=drag_on_me_button(x=x,y=y)
-        layout.addWidget(button,x,y,alignment=Qt.AlignmentFlag.AlignTop)
-        self.parent().updateGeometry() #type: ignore
-        self.destroy()
 
+        self.x=x
+        self.y=y
+        layout.addWidget(self,x,y)
+        
         e.accept()
+
+class fencer_button_class(drag_on_me_button):
+    def __init__(self,x,y,*,fencer):
+        super().__init__(x=x,y=y)
+        self.setFixedSize(QSize(100,60))
+        self.fencer=fencer
+        self.id=fencer["_id"]
+        self.setLayout(QGridLayout())
+        weapon, gender, age, sing_team = fencer["competition"].strip().split()
+        self.layout().addWidget(QLabel(fencer["lastname"]),0,0,1,2) #type: ignore
+        self.layout().addWidget(QLabel(fencer["firstname"]),1,0,1,2) #type: ignore
+        self.layout().addWidget(QLabel(weapon),2,0) #type: ignore
+        self.layout().addWidget(QLabel(age),2,1) #type: ignore
+
+    
+
 
     
 
