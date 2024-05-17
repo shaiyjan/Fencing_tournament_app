@@ -23,6 +23,8 @@ class Widget(QWidget):
         scroll_area=QScrollArea()
         self.fill_widget = QWidget()
         scroll_area.setWidget(self.fill_widget)
+        scroll_area.setStyleSheet("background-color: light gray")
+        
         layout.addWidget(scroll_area)
         self.setLayout(layout)
 
