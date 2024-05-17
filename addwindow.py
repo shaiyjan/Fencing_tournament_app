@@ -1,17 +1,13 @@
-from PySide6.QtWidgets import QStackedLayout,QWidget, QLabel, QLineEdit
-from PySide6.QtCore import QSize
+from PySide6.QtWidgets import (
+    QStackedLayout,
+    QWidget,
+    QLabel,
+    QMessageBox)
 
 from add_window_select_persons import group_selection_wid
 from add_window_select_comp import general_button_group
 
 from drag_and_drop_ele import drag_on_me_button,fencer_button_class
-
-
-from utility import clearLayout ,connect_database
-
-
-
-
 
 def create_query(button):
     reg_ex_1= button[2]
@@ -53,20 +49,27 @@ class add_widget(QWidget):
                         wid_in_grid=self.wid_sec.selection_layout.itemAtPosition(i,j).widget()
                     except AttributeError:
                         break
-                    if type(wid_in_grid)==QLabel:
+                    if type(wid_in_grid)==QLabel: #type: ignore
                         preliminary_groups.append([])
                         group_number +=1
                         break
-                    elif type(wid_in_grid)==drag_on_me_button:
+                    elif type(wid_in_grid)==drag_on_me_button: #type: ignore
                         continue
-                    elif type(wid_in_grid)==fencer_button_class:
+                    elif type(wid_in_grid)==fencer_button_class: #type: ignore
                         preliminary_groups[group_number].append(wid_in_grid.id)
-            for group in preliminary_groups:
-                print(group)
+           
 
-                        
-
-             
+            msgbox= QMessageBox()
+            msgbox.setText("Do you want to finish the preliminary group setup?")
+            msgbox.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
+            ret = msgbox.exec()
+            if ret==2048:
+                pre_mode=self.wid_first.set_modus_widget.currentText()
+                qual_mode=self.wid_first.set_modus_widget.currentText()
+                self.create_prelimery(preliminary_groups,pre_mode,qual_mode)
+                return(preliminary_groups)
+            elif ret ==4194304 | ret ==8388608:
+                self.prev_clicked()
                     
     def prev_clicked(self):
         self.ind -=1
@@ -77,7 +80,8 @@ class add_widget(QWidget):
         self.super_layout.currentWidget().move(xpos,ypos)
 
     def cancel_clicked(self):
-        self.super_layout.currentWidget().close()    
+        self.super_layout.currentWidget().close()
+        self.deleteLater()  
 
     @property
     def ind(self):
@@ -88,6 +92,8 @@ class add_widget(QWidget):
         self._ind = max(0,num)
 
 
+    def create_prelimery(self,preliminary_groups,pre_mode,qual_mode):
+        self.super_layout.currentWidget().close()
     
 
 

@@ -16,14 +16,22 @@ def clearLayout(layout):
 def new_matrix(row : int,col : int):
   mat=[]
   for x in range(row):
-    mat.append([None]*col)
+    mat.append([]*col)
   return(mat)
 
 
-def connect_database():
+
+def connect_database() :
   client = pymongo.MongoClient("localhost:27017")
   database = client.get_database("Tournament")
   collection = database.get_collection("Fencer")
+
+  return collection
+
+def connect_prelimnary():
+  client = pymongo.MongoClient("localhost:27017")
+  database = client.get_database("Tournament")
+  collection = database.get_collection("Preliminary")
 
   return collection
 

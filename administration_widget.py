@@ -1,31 +1,37 @@
-from PySide6.QtWidgets import QGridLayout ,QHBoxLayout ,QVBoxLayout ,QPushButton, QComboBox, QWidget, QLabel,QLineEdit ,QHBoxLayout,QVBoxLayout
+from PySide6.QtWidgets import (
+    QLayout,
+    QGridLayout,
+    QHBoxLayout,
+    QPushButton,
+    QComboBox,
+    QWidget,
+    QLabel,
+    QLineEdit)
+from PySide6.QtCore import Qt
+
 from administration_buttons import paid_box,recipe_box,attest_box,attandance_box
 
-
-import pymongo
-
-from utility import clearLayout, calculate_age
+from utility import calculate_age, connect_database
 
 
 def read_collection(key,value):
-    client = pymongo.MongoClient("localhost:27017")
-    database = client.get_database("Tournament")
-    collection = database.get_collection("Fencer")
     
-    
+    collection = connect_database()
     reg_ex_str=""
     for letter in value:
         reg_ex_str += "("+letter.upper()+"|"+letter.lower()+ ")"
     db_ret=collection.find({key:{"$regex": "^.*"+reg_ex_str+".*$"}})
+
     return db_ret
 
-class administation_layout(QVBoxLayout):
+class administation_layout(QGridLayout):
     def __init__(self):
         super().__init__()
 
         self.selected_keys= ["lastname","firstname","club","attandence","paid","competition"]
-
-        search_bar = QWidget()
+        self.setSizeConstraint(QLayout.SetMinimumSize) #type: ignore
+        self.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
         
         search_label = QLabel("Suche")
         self.search_key = QComboBox()
@@ -40,40 +46,30 @@ class administation_layout(QVBoxLayout):
 
         search_submit_button.clicked.connect(self.button_submit_clicked)
         
-        search_bar.setLayout(search_layout)
-
-        self.addWidget(search_bar)
-        self.work_widget = QWidget()
-
-        self.widgets_in_worklayout =[]
-        self.work_layout=QGridLayout()
-        self.work_layout.addWidget(QLabel("Nachname, Vorname"),0,1)
-        self.work_layout.addWidget(QLabel("Verein"),0,2)
-        self.work_layout.addWidget(QLabel("Wettbewerb"),0,3)
-        self.work_layout.addWidget(QLabel("Anwesend"),0,4)
-        self.work_layout.addWidget(QLabel("Bezahlt"),0,5)
-        self.work_layout.addWidget(QLabel("Quittung"),0,6)
-        self.work_layout.addWidget(QLabel("Attest"),0,7)
-        self.work_widget.setLayout(self.work_layout)
-        self.addWidget(self.work_widget)
-        self.addStretch()
+        self.addLayout(search_layout,0,0,1,6)
+        
+        self.addWidget(QLabel("Nachname, Vorname"),1,0)
+        self.addWidget(QLabel("Verein"),1,1)
+        self.addWidget(QLabel("Wettbewerb"),1,2)
+        self.addWidget(QLabel("Anwesend"),1,3)
+        self.addWidget(QLabel("Bezahlt"),1,4)
+        self.addWidget(QLabel("Quittung"),1,5)
+        self.addWidget(QLabel("Attest"),1,6)
+        
 
     def button_submit_clicked(self):
-        
-        clearLayout(self.work_layout)
-        self.work_layout.addWidget(QLabel("Nachname, Vorname"),0,1)
-        self.work_layout.addWidget(QLabel("Verein"),0,2)
-        self.work_layout.addWidget(QLabel("Wettbewerb"),0,3)
-        self.work_layout.addWidget(QLabel("Anwesend"),0,4)
-        self.work_layout.addWidget(QLabel("Bezahlt"),0,5)
-        self.work_layout.addWidget(QLabel("Quittung"),0,6)
-        self.work_layout.addWidget(QLabel("Attest"),0,7)
+
+        for row in range(2,self.rowCount()):
+            for col in range(6):
+                if self.itemAtPosition(row,col) and self.itemAtPosition(row,col).widget():
+                    self.itemAtPosition(row,col).widget().deleteLater()
+
         db_ret=read_collection(
             key=self.search_key.currentText(),
             value = self.search_input.text())
         
         db_ret=sorted(db_ret,key=lambda x : x ["lastname"])
-        counter=1
+        counter=2
         for it in db_ret:
             id=it["_id"]
             person_name = QLabel(f"{it['lastname'].capitalize()}, {it['firstname']}")
@@ -87,18 +83,17 @@ class administation_layout(QVBoxLayout):
                 attes_wid=attest_box(id,True if it["attest"]=="yes" else False)
             else:
                 attes_wid=QWidget()
-            self.widgets_in_worklayout.extend([person_name,club_name,comp_name,attan_box,pay_box,recei_box])
             
-            
-            self.work_layout.addWidget(person_name,counter,1)
-            self.work_layout.addWidget(club_name,counter,2)
-            self.work_layout.addWidget(comp_name,counter,3)
-            self.work_layout.addWidget(attan_box,counter,4)
-            self.work_layout.addWidget(pay_box,counter,5)
-            self.work_layout.addWidget(recei_box,counter,6)
-            self.work_layout.addWidget(attes_wid,counter,7)
+            self.addWidget(person_name,counter,0)
+            self.addWidget(club_name,counter,1)
+            self.addWidget(comp_name,counter,2)
+            self.addWidget(attan_box,counter,3)
+            self.addWidget(pay_box,counter,4)
+            self.addWidget(recei_box,counter,5)
+            self.addWidget(attes_wid,counter,6)
 
             counter+=1
-        self.work_widget.setLayout(self.work_layout)
+
+                
 
     

@@ -1,4 +1,12 @@
-from PySide6.QtWidgets import QComboBox,QWidget,QLabel,QLineEdit,QPushButton,QGridLayout,QVBoxLayout,QHBoxLayout
+from PySide6.QtWidgets import (
+    QComboBox,
+    QWidget,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QGridLayout,
+    QVBoxLayout,
+    QHBoxLayout)
 from PySide6.QtCore import QSize
 
 from utility import connect_database

@@ -1,10 +1,15 @@
-from PySide6.QtWidgets import QGridLayout,QFileDialog, QWidget,QPushButton, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import (
+    QScrollArea,
+    QFileDialog, 
+    QWidget,
+    QPushButton, 
+    QVBoxLayout, 
+    QHBoxLayout)
 
 from addwindow import add_widget
 from delayed_widget import delayed_widget
 
 import csv
-import pymongo
 
 from utility import connect_database
 
@@ -15,8 +20,10 @@ class Widget(QWidget):
         self.menu =LWidget()
         self.menu.setFixedWidth(menu_toggle_size)
         layout.addWidget(self.menu)
+        scroll_area=QScrollArea()
         self.fill_widget = QWidget()
-        layout.addWidget(self.fill_widget)
+        scroll_area.setWidget(self.fill_widget)
+        layout.addWidget(scroll_area)
         self.setLayout(layout)
 
 class LWidget(QWidget):

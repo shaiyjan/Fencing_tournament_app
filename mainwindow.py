@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.app = app
         self.setWindowTitle("Turnier-Organisator")
-        self.setMinimumSize(QSize(900,480))
+        self.setMinimumSize(QSize(800,600))
 
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("&Menu")
@@ -39,7 +39,6 @@ class MainWindow(QMainWindow):
         self.Wid = Widget(self,menu_toggle_size)
         
         self.setCentralWidget(self.Wid)
-        # button2.setDisabled(self.button_checked)
 
     def button_admin_clicked(self):
         self.Wid.fill_widget.setLayout(administation_layout())

@@ -1,5 +1,13 @@
-from PySide6.QtWidgets import  QHBoxLayout,QGridLayout, QPushButton,QWidget,QLabel,QLineEdit,QVBoxLayout
-from PySide6.QtCore import Qt,QSize
+from PySide6.QtWidgets import  (
+    QLayout,
+    QHBoxLayout,
+    QGridLayout,
+    QPushButton,
+    QWidget,
+    QLabel,
+    QLineEdit,
+    QVBoxLayout)
+from PySide6.QtCore import Qt
 
 from utility import clearLayout, connect_database
 
@@ -28,10 +36,10 @@ class group_selection_wid(QWidget):
         self.par=parent
 
         global_horizintal_layout = QHBoxLayout()
-        menu_wid = QWidget()
-        
 
+        menu_wid = QWidget()
         menu_layout = QVBoxLayout()
+
         menu_next_button = QPushButton("Next")
         menu_prev_button = QPushButton("Previous")
         menu_cancel_button = QPushButton("Cancel")
@@ -41,7 +49,6 @@ class group_selection_wid(QWidget):
         menu_cancel_button.clicked.connect(parent.cancel_clicked)
 
         menu_layout.addWidget(menu_next_button)
-
         menu_layout.addWidget(QLabel("Gruppengröße:"))
 
         self.group_size=6
@@ -62,6 +69,8 @@ class group_selection_wid(QWidget):
 
         self.selection_wid = QWidget()
         self.selection_layout=QGridLayout()
+        self.selection_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.selection_layout.setSizeConstraint(QLayout.SetMinimumSize) #type: ignore
         self.selection_wid.setLayout(self.selection_layout)
 
         global_horizintal_layout.addWidget(menu_wid)
@@ -80,7 +89,7 @@ class group_selection_wid(QWidget):
         
         
         row=0
-        self.selection_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
         for i in range(number_of_groups):
             wid=QLabel(f"Gruppe {i+1}:")
             self.selection_layout.addWidget(wid,
