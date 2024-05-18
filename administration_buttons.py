@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import QCheckBox
-import pymongo
+
+from dbmongo import db
 
 class admin_button(QCheckBox):
-    client = pymongo.MongoClient("localhost:27017")
     def __init__(self):
         super().__init__()
 
@@ -36,6 +36,4 @@ class attest_box(admin_button):
     
 
 def box_update(id,checked_bool,field):
-    client = pymongo.MongoClient("localhost:27017")
-    collection=client.get_database("Tournament").get_collection("Fencer")
-    collection.update_one({"_id": id}, {"$set":{ field: "yes" if checked_bool else "no"}})
+    db.update_one("Fencer",query={"_id": id},update_dict={ field: "yes" if checked_bool else "no"})

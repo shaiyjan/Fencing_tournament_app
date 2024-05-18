@@ -9,18 +9,19 @@ from PySide6.QtWidgets import  (
     QVBoxLayout)
 from PySide6.QtCore import Qt
 
-from utility import clearLayout, connect_database
+from utility import clearLayout
+import random
+
+from dbmongo import db
 
 from drag_and_drop_ele import drag_on_me_button,fencer_button_class
 
 def create_person_button(list):
-    collection = connect_database()
     button_list=[]
     for button in list:
         if button[0].isChecked():
             query = {"competition":{"$regex": "^.*"+button[2]+".*$"}}
-            fencer_list_cursor=collection.find(query)
-            for fencer in fencer_list_cursor:
+            for fencer in db.find_all("Fencer",query=query):
                 for add_fencer in button_list:
                     if add_fencer.fencer["id"]==fencer["id"]:
                         break
@@ -43,10 +44,14 @@ class group_selection_wid(QWidget):
         menu_next_button = QPushButton("Next")
         menu_prev_button = QPushButton("Previous")
         menu_cancel_button = QPushButton("Cancel")
+        menu_random_button = QPushButton("Random")
+        menu_reset_button = QPushButton("Reset")
 
         menu_next_button.clicked.connect(parent.next_click)
         menu_prev_button.clicked.connect(parent.prev_clicked)
         menu_cancel_button.clicked.connect(parent.cancel_clicked)
+        menu_random_button.clicked.connect(self.assign_random)
+        menu_reset_button.clicked.connect(self.value_changed)
 
         menu_layout.addWidget(menu_next_button)
         menu_layout.addWidget(QLabel("Gruppengröße:"))
@@ -61,6 +66,8 @@ class group_selection_wid(QWidget):
         self.set_group_amount_wid.textChanged.connect(self.value_changed)
         menu_layout.addWidget(self.set_group_amount_wid)
         
+        menu_layout.addWidget(menu_random_button)
+        menu_layout.addWidget(menu_reset_button)
         menu_layout.addWidget(menu_prev_button)
         menu_layout.addWidget(menu_cancel_button)
         menu_layout.addStretch()
@@ -78,6 +85,41 @@ class group_selection_wid(QWidget):
         self.setLayout(global_horizintal_layout)
 
         self.setMinimumWidth(890)
+
+    def assign_random(self):
+        index_list=[]
+        swap_list=[]
+        self.value_changed()
+        for i in range(self.selection_layout.rowCount()):
+            for j in range(6):
+                try:
+                    wid=self.selection_layout.itemAtPosition(i,j).widget()
+                except:
+                    continue
+                if type(wid)==fencer_button_class: #type:ignore
+                    index_list.append(wid)
+        random.shuffle(index_list)
+        ppg=int(int(self.par.wid_first.count_label.text()) / int(self.set_group_amount_wid.text()))
+        row=0
+        while len(swap_list)!=len(index_list):
+            wid=self.selection_layout.itemAtPosition(row,0).widget()
+            if type(wid)==QLabel: #type:ignore
+                row+=1
+                for i in range(int(ppg)):
+                    swap_wid=self.selection_layout.itemAtPosition(row + i//6,i %6).widget()
+                    swap_list.append(swap_wid)
+            else:
+                row+=1
+                
+        for i in range(len(index_list)):
+            part_wid=index_list[i]
+            but_wid=swap_list[i]
+            ind_part=part_wid.x, part_wid.y
+            ind_but=but_wid.x,but_wid.y
+            but_wid.x,but_wid.y= ind_part
+            part_wid.x,part_wid.y=ind_but
+            self.selection_layout.addWidget(but_wid,*ind_part)
+            self.selection_layout.addWidget(part_wid,*ind_but)
 
     def value_changed(self):
         clearLayout(self.selection_wid.layout())

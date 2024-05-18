@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout)
 from PySide6.QtCore import QSize
 
-from utility import connect_database
+from dbmongo import db
 
 
 class weapon_button_outer_l(QGridLayout):
@@ -128,10 +128,9 @@ class general_button_group(QWidget):
 
 def create_weapon_buttons():
     """ by pure data, not by competition """
-    collection = connect_database()
 
     modal = []
-    for fencer in collection.find():
+    for fencer in db.find_all("Fencer"):
         
         add_dict ={"competition":fencer["competition"].strip(),
                 "teilnehmer":[fencer["id"]]

@@ -20,22 +20,6 @@ def new_matrix(row : int,col : int):
   return(mat)
 
 
-
-def connect_database() :
-  client = pymongo.MongoClient("localhost:27017")
-  database = client.get_database("Tournament")
-  collection = database.get_collection("Fencer")
-
-  return collection
-
-def connect_prelimnary():
-  client = pymongo.MongoClient("localhost:27017")
-  database = client.get_database("Tournament")
-  collection = database.get_collection("Preliminary")
-
-  return collection
-
-
 def altersklasse(string_in : str, season_year : int):
     _,_,year = string_in.split(".")
     ret_val = None

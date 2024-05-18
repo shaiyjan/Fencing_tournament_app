@@ -11,7 +11,7 @@ from delayed_widget import delayed_widget
 
 import csv
 
-from utility import connect_database
+from dbmongo import db
 
 class Widget(QWidget):
     def __init__(self,parent,menu_toggle_size):
@@ -79,5 +79,4 @@ def read_to_db(files):
                 del line['\ufeffid']
                 list_of_dict.append(line)
 
-    collection = connect_database()
-    collection.insert_many(list_of_dict)
+    db.insert("Fencer",list_of_dict)

@@ -11,16 +11,18 @@ from PySide6.QtCore import Qt
 
 from administration_buttons import paid_box,recipe_box,attest_box,attandance_box
 
-from utility import calculate_age, connect_database
+from dbmongo import db
+
+from utility import calculate_age
 
 
 def read_collection(key,value):
     
-    collection = connect_database()
     reg_ex_str=""
     for letter in value:
         reg_ex_str += "("+letter.upper()+"|"+letter.lower()+ ")"
-    db_ret=collection.find({key:{"$regex": "^.*"+reg_ex_str+".*$"}})
+
+    db_ret=db.find_all("Fencer",query={key:{"$regex": "^.*"+reg_ex_str+".*$"}})
 
     return db_ret
 
@@ -60,7 +62,7 @@ class administation_layout(QGridLayout):
     def button_submit_clicked(self):
 
         for row in range(2,self.rowCount()):
-            for col in range(6):
+            for col in range(7):
                 if self.itemAtPosition(row,col) and self.itemAtPosition(row,col).widget():
                     self.itemAtPosition(row,col).widget().deleteLater()
 
