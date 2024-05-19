@@ -6,10 +6,11 @@ from PySide6.QtWidgets import (
     QComboBox,
     QWidget,
     QLabel,
-    QLineEdit)
+    QLineEdit,
+    QStackedWidget)
 from PySide6.QtCore import Qt
 
-from administration_buttons import paid_box,recipe_box,attest_box,attandance_box
+from administration_buttons import paid_box,recipe_box,attest_box,attendance_box
 
 from dbmongo import db
 
@@ -30,16 +31,29 @@ class administation_layout(QGridLayout):
     def __init__(self):
         super().__init__()
 
-        self.selected_keys= ["lastname","firstname","club","attandence","paid","competition"]
+        key_names=["Nachname","Vorname","Verein","Anwesend","Bezahlt","Wettbewerb"]
+        self.selected_keys= ["lastname","firstname","club","attendance","paid","competition"]
         self.setSizeConstraint(QLayout.SetMinimumSize) #type: ignore
         self.setAlignment(Qt.AlignmentFlag.AlignTop)
         
         
         search_label = QLabel("Suche")
+
+        self.search_input= QStackedWidget()
+        self.search_input.addWidget(QLineEdit())
+
+
         self.search_key = QComboBox()
-        self.search_key.addItems(self.selected_keys)
+        self.search_key.currentIndexChanged.connect(self.select_search_widget)
+        self.search_key.addItems(key_names)
         search_submit_button = QPushButton("Suche")
-        self.search_input= QLineEdit()
+        
+        self.yes_no_box=QComboBox()
+        self.yes_no_box.addItems(["Ja","Nein"])
+        self.tournament_box=QComboBox()
+        self.search_input.addWidget(self.yes_no_box)
+        self.search_input.addWidget(self.tournament_box)
+
         search_layout=QHBoxLayout()
         search_layout.addWidget(search_label)
         search_layout.addWidget(self.search_key)
@@ -48,7 +62,7 @@ class administation_layout(QGridLayout):
 
         search_submit_button.clicked.connect(self.button_submit_clicked)
         
-        self.addLayout(search_layout,0,0,1,6)
+        self.addLayout(search_layout,0,0,1,7)
         
         self.addWidget(QLabel("Nachname, Vorname"),1,0)
         self.addWidget(QLabel("Verein"),1,1)
@@ -57,18 +71,38 @@ class administation_layout(QGridLayout):
         self.addWidget(QLabel("Bezahlt"),1,4)
         self.addWidget(QLabel("Quittung"),1,5)
         self.addWidget(QLabel("Attest"),1,6)
-        
+
+
+    def select_search_widget(self):
+        if self.search_key.currentIndex() in [0,1,2]:
+            self.search_input.setCurrentIndex(0) #
+        elif self.search_key.currentIndex() in [3,4]:
+            self.search_input.setCurrentIndex(1)
+        elif self.search_key.currentIndex()==5:
+            comp_list=db.get_distinct_values("Fencer","competition")
+            self.search_input.setCurrentIndex(2)
+            self.tournament_box.clear()
+            self.tournament_box.addItems(comp_list)
 
     def button_submit_clicked(self):
-
+        size=self.search_input.height()
         for row in range(2,self.rowCount()):
             for col in range(7):
                 if self.itemAtPosition(row,col) and self.itemAtPosition(row,col).widget():
                     self.itemAtPosition(row,col).widget().deleteLater()
 
-        db_ret=read_collection(
-            key=self.search_key.currentText(),
-            value = self.search_input.text())
+        key=self.selected_keys[self.search_key.currentIndex()]
+
+        if type(self.search_input.currentWidget()) == QLineEdit:
+            value = value= self.search_input.currentWidget().text()
+        elif type(self.search_input.currentWidget()) == QComboBox:
+            value=self.search_input.currentWidget().currentText()
+            if value=="Ja":
+                value="yes"
+            elif value=="Nein":
+                value="no"
+
+        db_ret=read_collection(key=key,value = value)
         
         db_ret=sorted(db_ret,key=lambda x : x ["lastname"])
         counter=2
@@ -77,7 +111,7 @@ class administation_layout(QGridLayout):
             person_name = QLabel(f"{it['lastname'].capitalize()}, {it['firstname']}")
             club_name =  QLabel(f"{it['club']}")
             comp_name = QLabel(f"{it['competition']}")
-            attan_box=attandance_box(id,True if it["attandence"]=="yes" else False)
+            attan_box=attendance_box(id,True if it["attendance"]=="yes" else False)
             pay_box=paid_box(id,True if it["paid"]=="yes" else False)
             age=calculate_age(*it["dateofbirth"].strip().split("."))
             recei_box = recipe_box(id,True if it["recipe"]=="yes" else False)
@@ -95,7 +129,15 @@ class administation_layout(QGridLayout):
             self.addWidget(attes_wid,counter,6)
 
             counter+=1
+        self.setSizeConstraint(QLayout.SetMinimumSize) #type: ignore
+        self.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        for row in range(self.rowCount()):
+            try:
+                self.setRowStretch(row,1)
+            except:
+                ...
+        
                 
 
     

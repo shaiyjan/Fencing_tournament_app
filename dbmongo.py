@@ -6,6 +6,7 @@ class db:
     client = pymongo.MongoClient("localhost:27017")
     database = client.get_database("Tournament")
 
+
     @classmethod
     def insert(cls,collection : str,insertion : dict | list[dict]) -> None:
         collection = cls.database.get_collection(collection)
@@ -13,7 +14,7 @@ class db:
         if type(insertion)==dict:
             collection.insert_one(insertion)
         elif type(insertion)==list:
-            collection.inert_many(insertion)
+            collection.insert_many(insertion)
 
     @classmethod
     def find_all(cls,collection : str,*,query :dict={})-> list[dict]:
@@ -38,4 +39,6 @@ class db:
     def get_distinct_values(cls,collection:str,key:str) -> list:
         collection= cls.database.get_collection(collection)
         return collection.distinct(key)
+
+db_init=db()
         

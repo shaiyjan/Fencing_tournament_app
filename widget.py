@@ -73,7 +73,7 @@ def read_to_db(files):
             reader = csv.DictReader(f,delimiter=";")
             for line in reader:
                 line["recipe"]="no"
-                line["attandence"]="no"
+                line["attendance"]="no"
                 line["attest"]="no"
                 line['id'] = line['\ufeffid']
                 del line['\ufeffid']

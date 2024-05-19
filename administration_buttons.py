@@ -6,12 +6,12 @@ class admin_button(QCheckBox):
     def __init__(self):
         super().__init__()
 
-class attandance_box(admin_button):
+class attendance_box(admin_button):
     def __init__(self, id,checked):
         super().__init__()
         self.id=id
         self.setChecked(checked)
-        self.checkStateChanged.connect(lambda : box_update(self.id,self.isChecked(),"attandence"))
+        self.checkStateChanged.connect(lambda : box_update(self.id,self.isChecked(),"attendance"))
 
 class paid_box(admin_button):
     def __init__(self, id,checked):

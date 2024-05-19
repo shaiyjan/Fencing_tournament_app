@@ -37,7 +37,7 @@ class add_widget(QWidget):
         if self.ind == 1 :
             if self.wid_sec.set_group_amount_wid.text()=="None":
                 group_size = 6
-                participants = int(self.wid_first.count_label.text())
+                participants = int(self.wid_first.count_label.text().split("/")[0])
                 new_size = str(max(participants // group_size + bool(participants%group_size),1))
                 self.wid_sec.set_group_amount_wid.setText(new_size)   
         if self.ind == 2:

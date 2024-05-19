@@ -1,5 +1,26 @@
 from datetime import date
-import pymongo
+
+class part_counter:
+    def __init__(self,attendant,total):
+        self.nom=attendant
+        self.denom=total
+
+    def __str__(self):
+        return f"{len(self.nom)}/{len(self.denom)}"
+
+    def __add__(self,other):
+        if type(other)==type(self):
+            nom_ids=self.nom
+            denom_ids=self.denom
+            for id in other.nom:
+                if id not in nom_ids:
+                    nom_ids.append(id)
+            for id in other.denom:
+                if id not in denom_ids:
+                    denom_ids.append(id)
+            return part_counter(
+                nom_ids,denom_ids)
+
 
 def calculate_age(day,month,year):
     today = date.today()

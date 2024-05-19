@@ -9,23 +9,26 @@ from PySide6.QtWidgets import (
     QHBoxLayout)
 from PySide6.QtCore import QSize
 
+from utility import part_counter
 from dbmongo import db
 
 
-class weapon_button_outer_l(QGridLayout):
-    def __init__(self,competition:str, anzahl="NULL"):
+class weapon_button(QPushButton):
+    def __init__(self,competition:str, anzahl : part_counter):
         super().__init__()
-
+        self.setLayout(QGridLayout())
+        self.setCheckable(True)
+        self.setFixedSize(QSize(150,100))
         fencer_values=tuple(competition.split(" "))
         waffe = fencer_values[0]
         geschlecht = fencer_values[1]
         altersklasse = fencer_values[2]
         ein_team= fencer_values[3]
 
-        self.addWidget(QLabel(waffe),0,0)
-        self.addWidget(QLabel(geschlecht),0,1)
-        self.addWidget(QLabel(altersklasse),1,0)
-        self.addWidget(QLabel(anzahl),1,1)
+        self.layout().addWidget(QLabel(waffe),0,0) #type: ignore
+        self.layout().addWidget(QLabel(geschlecht),0,1) #type: ignore
+        self.layout().addWidget(QLabel(altersklasse),1,0) #type: ignore
+        self.layout().addWidget(QLabel(str(anzahl)),1,1) #type: ignore
 
 class general_button_group(QWidget):
     def __init__(self,parent):
@@ -67,11 +70,10 @@ class general_button_group(QWidget):
         self.groupWidget=group_widget
         
         #menu - widget
-        self.teilnehmerzahl="0"
         left_widget = QWidget()
 
         teilnehmerzahl_label = QLabel("Teilnehmerzahl:")
-        self.count_label = QLabel(self.teilnehmerzahl)
+        self.count_label = QLabel("0/0")
         group_phase_widget = QLabel("Vorrunde:")
         self.set_group_widget = QComboBox()
         self.set_group_widget.addItems([ "Einfach", "Doppelt"] )
@@ -120,11 +122,13 @@ class general_button_group(QWidget):
         self.setLayout(layout_outer)
 
     def weapon_button_clicked(self):
-        participant_ids=set()
+        counter=part_counter([],[])
         for button,comp_participants,_ in self.button_list:
             if button.isChecked():
-                participant_ids.update(comp_participants)
-        self.count_label.setText(str(len(participant_ids)))
+                counter += comp_participants
+                
+
+        self.count_label.setText(str(counter))
 
 def create_weapon_buttons():
     """ by pure data, not by competition """
@@ -133,24 +137,23 @@ def create_weapon_buttons():
     for fencer in db.find_all("Fencer"):
         
         add_dict ={"competition":fencer["competition"].strip(),
-                "teilnehmer":[fencer["id"]]
+                "teilnehmer":[fencer["id"]],
+                "attendance":[fencer["id"]] if fencer["attendance"]=="yes" else []
                 }
         for dict_in in modal:
             if dict_in["competition"]== add_dict["competition"]:
                 dict_in["teilnehmer"].append(fencer["id"])
+                dict_in["attendance"].extend(add_dict["attendance"])
                 break
         else:
             modal.append(add_dict)
-
+            
     button_list=[]
     for mod_dict in modal:
-        weapon_button =QPushButton()
-        weapon_button.setCheckable(True)
-        weapon_button.setFixedSize(QSize(150,100))
-        weapon_button.setLayout(weapon_button_outer_l(
+        weapon_button_add = weapon_button(
             competition=mod_dict["competition"],
-            anzahl=str(len(mod_dict["teilnehmer"]))))
-        button_list.append((weapon_button,mod_dict["teilnehmer"],mod_dict["competition"])) 
+            anzahl=part_counter(mod_dict["attendance"],mod_dict["teilnehmer"]))
+        button_list.append((weapon_button_add,part_counter(mod_dict["attendance"],mod_dict["teilnehmer"]),mod_dict["competition"])) 
 
     return button_list
     

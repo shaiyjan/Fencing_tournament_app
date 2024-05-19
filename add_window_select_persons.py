@@ -22,12 +22,13 @@ def create_person_button(list):
         if button[0].isChecked():
             query = {"competition":{"$regex": "^.*"+button[2]+".*$"}}
             for fencer in db.find_all("Fencer",query=query):
-                for add_fencer in button_list:
-                    if add_fencer.fencer["id"]==fencer["id"]:
-                        break
-                else:
-                    fencer_button=fencer_button_class(fencer=fencer,x=None,y=None)
-                    button_list.append(fencer_button)
+                if fencer["attendance"] =="yes":
+                    for add_fencer in button_list:
+                        if add_fencer.fencer["id"]==fencer["id"]:
+                            break
+                    else:
+                        fencer_button=fencer_button_class(fencer=fencer,x=None,y=None)
+                        button_list.append(fencer_button)
     return button_list
 
 
@@ -99,7 +100,7 @@ class group_selection_wid(QWidget):
                 if type(wid)==fencer_button_class: #type:ignore
                     index_list.append(wid)
         random.shuffle(index_list)
-        ppg=int(int(self.par.wid_first.count_label.text()) / int(self.set_group_amount_wid.text()))
+        ppg=int(int(self.par.wid_first.count_label.text().split("/")[0]) / int(self.set_group_amount_wid.text()))
         row=0
         while len(swap_list)!=len(index_list):
             wid=self.selection_layout.itemAtPosition(row,0).widget()
