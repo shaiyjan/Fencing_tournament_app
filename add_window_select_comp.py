@@ -101,6 +101,7 @@ class general_button_group(QWidget):
         layout_left.addWidget(cancel_button)
         layout_left.addStretch()
         left_widget.setLayout(layout_left)
+        
 
 
         left_widget.setFixedWidth(150)

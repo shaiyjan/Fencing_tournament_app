@@ -6,6 +6,9 @@ class db:
     client = pymongo.MongoClient("localhost:27017")
     database = client.get_database("Tournament")
 
+    @classmethod
+    def collection_names(cls):
+        return cls.database.list_collection_names()
 
     @classmethod
     def insert(cls,collection : str,insertion : dict | list[dict]) -> None:
@@ -18,7 +21,7 @@ class db:
 
     @classmethod
     def find_all(cls,collection : str,*,query :dict={})-> list[dict]:
-        collection = cls.database.get_collection(collection)
+        collection = cls.database.get_collection(collection) 
 
         out = collection.find(query)
         return [*out]
@@ -40,5 +43,12 @@ class db:
         collection= cls.database.get_collection(collection)
         return collection.distinct(key)
 
-db_init=db()
+    @classmethod
+    def drop_collection(cls,collection):
+        cls.database.drop_collection(collection)
+
+
+    
+
+
         

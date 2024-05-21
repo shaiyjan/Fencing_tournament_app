@@ -66,7 +66,6 @@ class LWidget(QWidget):
 
 def read_to_db(files):
 
-
     list_of_dict=[]
     for file in files:
         with open(file,encoding="UTF-16 LE") as f:

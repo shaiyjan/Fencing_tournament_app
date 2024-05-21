@@ -101,12 +101,14 @@ class group_selection_wid(QWidget):
                     index_list.append(wid)
         random.shuffle(index_list)
         ppg=int(int(self.par.wid_first.count_label.text().split("/")[0]) / int(self.set_group_amount_wid.text()))
+        ppg+=int(int(self.par.wid_first.count_label.text().split("/")[0]) % int(self.set_group_amount_wid.text()))
         row=0
         while len(swap_list)!=len(index_list):
             wid=self.selection_layout.itemAtPosition(row,0).widget()
             if type(wid)==QLabel: #type:ignore
                 row+=1
-                for i in range(int(ppg)):
+                length=min(ppg,len(index_list)-len(swap_list))
+                for i in range(length):
                     swap_wid=self.selection_layout.itemAtPosition(row + i//6,i %6).widget()
                     swap_list.append(swap_wid)
             else:

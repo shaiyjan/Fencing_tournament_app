@@ -23,9 +23,7 @@ class drag_on_me_button(QPushButton):
 
     def dropEvent(self, e):
         layout=self.parent().layout() #type:ignore 
-        #layout: QGridLayout
         x,y = e.source().x,e.source().y
-        x_self,y_self=self.x,self.y
 
         e.source().x=self.x
         e.source().y=self.y

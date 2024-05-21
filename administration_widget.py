@@ -7,7 +7,8 @@ from PySide6.QtWidgets import (
     QWidget,
     QLabel,
     QLineEdit,
-    QStackedWidget)
+    QStackedWidget,
+    QSizePolicy)
 from PySide6.QtCore import Qt
 
 from administration_buttons import paid_box,recipe_box,attest_box,attendance_box
@@ -34,14 +35,13 @@ class administation_layout(QGridLayout):
         key_names=["Nachname","Vorname","Verein","Anwesend","Bezahlt","Wettbewerb"]
         self.selected_keys= ["lastname","firstname","club","attendance","paid","competition"]
         self.setSizeConstraint(QLayout.SetMinimumSize) #type: ignore
-        self.setAlignment(Qt.AlignmentFlag.AlignTop)
-        
+        self.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)  
         
         search_label = QLabel("Suche")
 
         self.search_input= QStackedWidget()
+        self.search_input.setSizePolicy(QSizePolicy.Policy.Minimum,QSizePolicy.Policy.Fixed)
         self.search_input.addWidget(QLineEdit())
-
 
         self.search_key = QComboBox()
         self.search_key.currentIndexChanged.connect(self.select_search_widget)
@@ -73,6 +73,8 @@ class administation_layout(QGridLayout):
         self.addWidget(QLabel("Attest"),1,6)
 
 
+
+
     def select_search_widget(self):
         if self.search_key.currentIndex() in [0,1,2]:
             self.search_input.setCurrentIndex(0) #
@@ -85,7 +87,6 @@ class administation_layout(QGridLayout):
             self.tournament_box.addItems(comp_list)
 
     def button_submit_clicked(self):
-        size=self.search_input.height()
         for row in range(2,self.rowCount()):
             for col in range(7):
                 if self.itemAtPosition(row,col) and self.itemAtPosition(row,col).widget():
@@ -129,14 +130,19 @@ class administation_layout(QGridLayout):
             self.addWidget(attes_wid,counter,6)
 
             counter+=1
-        self.setSizeConstraint(QLayout.SetMinimumSize) #type: ignore
-        self.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        for row in range(self.rowCount()):
+        for row in range(counter):
             try:
-                self.setRowStretch(row,1)
+                self.setRowStretch(row,0)
             except:
                 ...
+
+        for col in range(self.columnCount()):
+            try:
+                self.setColumnStretch(col,0)
+            except:
+                ...
+        
         
                 
 

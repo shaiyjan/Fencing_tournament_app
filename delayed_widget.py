@@ -13,8 +13,6 @@ from dbmongo import db
 m = "männlich", "M"
 w= "weiblich", "F"
 
-""" rewrite with form widget"""
-
 from PySide6.QtWidgets import QFormLayout
 
 class delayed_widget(QWidget):
@@ -66,6 +64,9 @@ class delayed_widget(QWidget):
 
     def submit_button_clicked(self):
 
+        
+
+
         add_dict={
             "firstname":self.first_name_input.text(),
             "lastname":self.last_name_input.text(),
@@ -73,11 +74,19 @@ class delayed_widget(QWidget):
             "gender":self.gender_input.currentText(),
             "competition":self.tournament_input.currentText(),
             "paid": "yes" if self.paid_input.isChecked() else "no",
-            "attandance": "yes" if self.attandence_input.isChecked() else "no",
+            "attendance": "yes" if self.attandence_input.isChecked() else "no",
             "nation":self.nation_input.text(),
             "club":self.club_input.text(),
             "recipe": "yes" if self.recipe_input.isChecked() else "no",
         }
+        copy_check=db.find_one("Fencer",query={"firstname":self.first_name_input.text(),
+            "lastname":self.last_name_input.text(),})
+        if copy_check:
+            add_dict["id"]=copy_check["id"]
+        else:
+            id_str =max(db.get_distinct_values("Fencer","id"))
+            add_dict["id"]=str(int(id_str)+1)
+
         db.insert("Fencer",add_dict)
         self.cancel_button_clicked()
 
