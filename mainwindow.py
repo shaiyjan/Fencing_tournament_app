@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QStackedWidget)
 
 from administration_widget import administation_layout
-from delayed_widget import delayed_widget
+from delayed_widget import delayed_widget,delete_widget
 from addwindow import add_widget
 
 from screeninfo import screeninfo
@@ -89,11 +89,14 @@ class MainWindow(QMainWindow):
         self.app.quit()
 
     def build_lambda(self,ind):
-            return lambda : self.fill_widget.setCurrentIndex(ind+1)
+            return lambda : (
+                self.fill_widget.setCurrentIndex(ind+1),
+                self.fill_widget.currentWidget().refresh()
+            )
 
     def update_tournament_sheets(self):
         while self.tournament_actions:
-            self.toolbar.removeAction(self.tournament_actions.pop()[0])
+            self.toolbar.removeAction(self.tournament_actions.pop())
 
         tournament_names= db.collection_names()
         tournament_names.remove("Fencer")
@@ -106,8 +109,6 @@ class MainWindow(QMainWindow):
             action.triggered.connect(self.build_lambda(ind))
             self.tournament_actions.append((action))
 
-
-
 class LWidget(QWidget):
     def __init__(self,parent):
         super().__init__(parent=parent)
@@ -116,15 +117,18 @@ class LWidget(QWidget):
         button_add=QPushButton("Neuer Wettbewerb")
         button_read=QPushButton("Read von CSV")
         button_delayed=QPushButton("Delayed Participant")
+        button_drop=QPushButton("Wettbewerb löschen")
 
         button_add.clicked.connect(lambda : add_widget(parent))
         button_read.clicked.connect(self.button_read_clicked)
         button_delayed.clicked.connect(self.button_delayed_participant_clicked)
+        button_drop.clicked.connect(self.delete_tournament)
 
         layout= QVBoxLayout()
         layout.addWidget(button_add)
         layout.addWidget(button_read)
         layout.addWidget(button_delayed)
+        layout.addWidget(button_drop)
         layout.addWidget(QWidget())
         layout.addStretch()
         self.setLayout(layout)
@@ -137,9 +141,14 @@ class LWidget(QWidget):
 
     def button_delayed_participant_clicked(self):
         global delay_window 
-        delay_window =  delayed_widget()
+        delay_window = delayed_widget()
         delay_window.show()
 
+    def delete_tournament(self):
+        global delete_window
+        delete_window = delete_widget()
+        delete_window.show()
+        
 def read_to_db(files):
     list_of_dict=[]
     for file in files:

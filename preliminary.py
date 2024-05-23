@@ -6,8 +6,29 @@ from dbmongo import db
 
 id_rank=namedtuple("id_rank","id rank")
 
-def create_elimination_round(tournament_name,elim_type,part_by_rank):
-    ...
+
+def preliminary_by_preliminary(tournament : str, round: int):
+
+    org_data=db.find_one(collection="Organisation",query={"name":tournament})
+    group_dict = [*db.find_all(collection=tournament,query={"type":"preliminary","round":round})]
+    person_score_list=[]
+    for group in group_dict:
+        persons=group["group"]
+        table=group["table"]
+        for i in range(len(persons)):
+            person_score_list.append([persons[i],*table[i][-7:None]])
+
+    person_score_list.sort(key= lambda el: (float(el[3].strip("%")),int(el[-2])),reverse=True)
+
+    group_am=len(group_dict)
+    new_groups=[]
+    for i in range(group_am):
+        new_groups.append([])
+    for i in range(len(person_score_list)):
+        new_groups[i % group_am].append(person_score_list[i][0])
+    preliminary(name=tournament,groups=new_groups,rounds=round-1,elim_type=org_data["elimination_type"])
+
+
 
 def groups_by_ranking_func(fencer_ids : list[int],number_of_groups :int):
     rank_list=[]
@@ -26,101 +47,33 @@ def groups_by_ranking_func(fencer_ids : list[int],number_of_groups :int):
         group_number =group_number % number_of_groups
     return  groups
 
-
 class preliminary:
-    preliminary_id = 0
-    def __init__(self,name,groups : list[dict],rounds:list[int],elim_type):
+    def __init__(self,name,groups : list[list[dict]],rounds,elim_type):
         self.elimination_type=elim_type
         self.tournament_name=name
-        self.id=preliminary.preliminary_id
-        preliminary.preliminary_id +=1
         self.group_counter=0
-        self.rounds=rounds
-        self.groups=[]
         self.finished=False
-        round=self.rounds.pop()
         for group in groups:
-            self.groups.append(prelimary_group(name,self,group,round=round))
+            prelimary_group(parent=self,name=name,group=group,round=rounds)
 
-    def check_finished(self):
-        for group in self.groups:
-            if group.finished == False:
-                return
-        else:
-            part_by_rank=self.generate_ranking()
-            if not self.rounds:
-                new_groups=groups_by_ranking_func(part_by_rank,len(self.groups))
-                preliminary(self.tournament_name,new_groups,self.rounds,self.elimination_type)
-            else:
-                create_elimination_round(
-                    self.tournament_name,
-                    self.elimination_type,
-                    part_by_rank)
-            
-    def generate_ranking(self) -> list[int]:
-        score =[]
-        for group in self.groups:
-            score.append(group[1]+group[-6:])
-        score.sort(key = lambda  x: (x[-4],x[-1]))
-        
-        return [el[0] for el in score]
+        db.insert("Organisation", {
+                "name":name,
+                "preliminary_rounds":rounds,
+                "elimination_type":elim_type
+        })
 
 class prelimary_group:
     def __init__(self,name,parent : preliminary,group,round : int):
-        self.group_id= parent.group_counter
-        self.parent=parent
         parent.group_counter+=1
 
         self.group_dict={"id":[el["_id"] for el in group],
-                "type":"preliminary" + str(round),
+                "type":"preliminary",
+                "round": round,
                 "group":group,
+                "group_number": parent.group_counter,
                 "table":[],
                 "finished":False}
+        
         db.insert(name,self.group_dict)
 
-    def __dict__(self):
-        return self.group_dict
 
-    def insert_table(self,input_table: list[list[int]]):
-        for index,_ in enumerate(input_table):
-            if len(input_table[index])==len(self.table[index]):
-                continue
-        else:
-            self.table=input_table
-            self.finished,self.table=check_group_finished(self.table)
-
-        if self.finished:
-            db.update_one("Preliminary",
-                query={"id": self.group_id},
-                update_dict={"table": []})
-            self.parent.check_finished()
-        
-def check_group_finished( table : list[list]):
-    size=len(table)
-    bool_val=True
-    for i in range(size):
-        for j in range(size):
-            try:
-                table[i][j]=int(table[i][j])
-            except TypeError | ValueError:
-                return False,table
-            
-            
-
-    if bool_val:
-        for i in range(size):
-            hit_set=0
-            hit_get=0
-            wins = 0
-            for j in range(size):
-                hit_set += table[i][j]
-                hit_get += table[j][i]
-                if table[i][j]>table[j][i]:
-                    wins+=1
-            table[i].extend([wins,size,wins/size,hit_set,hit_get,hit_set-hit_get])
-    
-    row = [i for i in range(4)]
-    row.sort(key = lambda ind: (table[ind][-4],table[ind][-1]))
-    for pos,i in enumerate(row):
-        table[i].append(pos+1)
-    return True,table

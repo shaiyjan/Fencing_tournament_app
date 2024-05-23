@@ -80,7 +80,7 @@ class add_widget(QWidget):
             ret = msgbox.exec()
             if ret==2048:
                 name=self.wid_first.set_name_label.text()
-                pre_mode=self.wid_first.set_modus_widget.currentIndex()+1
+                pre_mode=self.wid_first.set_group_widget.currentIndex()+1
                 qual_mode=self.wid_first.set_modus_widget.currentText()
                 self.create_prelimery(name,preliminary_groups,pre_mode,qual_mode)
             elif ret ==4194304 | ret ==8388608:
@@ -112,7 +112,7 @@ class add_widget(QWidget):
     def create_prelimery(self,name,preliminary_groups,pre_mode,qual_mode):
         preliminary(name,
             preliminary_groups[0:-1],
-            [*range(pre_mode)],
+            pre_mode,
             qual_mode)
         self.super_layout.currentWidget().close()
     

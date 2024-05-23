@@ -5,6 +5,7 @@ import pymongo
 class db:
     client = pymongo.MongoClient("localhost:27017")
     database = client.get_database("Tournament")
+    collection= database.get_collection("Fencer")
 
     @classmethod
     def collection_names(cls):
@@ -46,6 +47,9 @@ class db:
     @classmethod
     def drop_collection(cls,collection):
         cls.database.drop_collection(collection)
+
+
+
 
 
     

@@ -10,9 +10,12 @@ from PySide6.QtWidgets import (
     QLayout,
     QTableWidgetItem)
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush,QColor
+from PySide6.QtGui import QColor
 
 from dbmongo import db
+
+from preliminary import preliminary_by_preliminary
+from elimination import create_elimination_round
 
 
 class tournament_wid(QWidget):
@@ -23,11 +26,9 @@ class tournament_wid(QWidget):
         self.layout().setSizeConstraint(QLayout.SetMinimumSize) #type: ignore
         self.layout().setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)  
 
-
         name_label=QLabel("Wettbewerbsname: "+name)
         phase_label=QLabel("Phase:")
-        phase_box=QComboBox()
-        phase_box.addItem("All")
+        self.phase_box=QComboBox()
 
         status_label =QLabel("Status:")
         status_box =QComboBox()
@@ -36,13 +37,14 @@ class tournament_wid(QWidget):
         self.layout().addWidget(name_label,0,0,1,6) #type: ignore
         header = QHBoxLayout()
         header.addWidget(phase_label)
-        header.addWidget(phase_box)
+        header.addWidget(self.phase_box)
         header.addWidget(status_label)
         header.addWidget(status_box)
+        header.addStretch()
         self.layout().addLayout(header,1,0,1,6) #type: ignore
 
         status_box.currentIndexChanged.connect(self.create_buttons)
-        phase_box.currentIndexChanged.connect(self.create_buttons)
+        self.phase_box.currentIndexChanged.connect(self.create_buttons)
 
     def create_buttons(self):
 
@@ -52,39 +54,87 @@ class tournament_wid(QWidget):
             label=QLabel(name)
             name_labels.append(label)
 
-        counter=0
+        phase_box_str=self.phase_box.currentText()
+        if phase_box_str=="Alle":
+            query={}
+        else:
+            if phase_box_str.startswith("Vorrunde"):
+                query={"type":"preliminary","round": int(phase_box_str[9:])}
+            elif phase_box_str.startswith("K.O."):
+                query={"type":"eliminarion","round": int(phase_box_str[4:])}
 
-        matches=db.find_all(collection=self.name)
-        for match in matches:
-            if match["type"].startswith("preliminary"):
+        matches=db.find_all(collection=self.name,query=query) #type: ignore
+        
+        for row in range(2,self.layout().rowCount()): #type: ignore
+            for col in range(self.layout().columnCount()): #type: ignore
+                try:
+                    self.layout().itemAtPosition(row,col).widget().deleteLater() # type: ignore
+                except:
+                    ...
+
+        for ind,match in enumerate(matches):
+            if match["type"]=="preliminary":
                 participants = [el for el in match['group']]
-                button = group_button(self.name ,group_id_bson=match["_id"],participants=participants)
+                button = group_button(name=self.name,
+                    parent=self,
+                    group_number=match["group_number"], #not right!
+                    group_id_bson=match["_id"],
+                    participants=participants,
+                    round=match["round"])
                 button.setFixedHeight(150)
                 button.setFixedWidth(200)
-                self.layout().addWidget(button,2+counter // 4,counter % 4) #type: ignore
-                counter +=1
+                self.layout().addWidget(button,2+ind // 4,ind % 4) #type: ignore
 
+
+    def refresh(self):
+        self.phase_box.clear()
+
+        prel_list = [*db.find_all(collection=self.name,query={"type":"preliminary"})]
+        elim_list = [*db.find_all(collection=self.name,query={"type":"elimination"})]       
+
+        self.phase_box.addItems(
+            set(["Vorrunde "+str(el["round"]) for el in prel_list])) #type: ignore
+        self.phase_box.addItems(
+            set(["K.O. - "+str(el["round"]) for el in elim_list])) #type: ignore
+        self.phase_box.addItem("Alle")
+
+        for row in range(2,self.layout().rowCount()): #type: ignore
+            for col in range(self.layout().columnCount()): #type: ignore 
+                try:
+                    self.layout().itemAtPosition(row,col).deleteLater() #type: ignore
+                except:
+                    ...
 
 class group_button(QPushButton):
-    def __init__(self,name,group_id_bson,participants:list):
-        super().__init__()
-        self.name=name
+    def __init__(self,name,parent,group_number,group_id_bson,participants:list,round):
+        super().__init__(parent=parent)
+        self.round=round
+        self.name=name 
+        self.round_name="Vorrunde "+ str(round)
         self.bson_id=group_id_bson
         self.participants=participants
         self.setLayout(QVBoxLayout())
-        self.layout().addWidget(QLabel("GroupName:"))
+        self.layout().addWidget(QLabel(self.round_name))
+        self.layout().addWidget(QLabel("Gruppe: " + str(group_number)))
+        
         for el in participants:
             self.layout().addWidget(QLabel(el["lastname"].capitalize() +","+el["firstname"].capitalize()))
         self.clicked.connect(self.click)
         
     def click(self):
-        wid=group_insertion_widget(self.participants,self.name,self.bson_id)
+        wid=group_insertion_widget(
+            parent=self,
+            participants=self.participants,
+            name=self.name,
+            id=self.bson_id,
+            round=self.round)
         wid.show()
 
 class group_insertion_widget(QWidget):
-    def __init__(self,participants,name,id):
-        super().__init__() 
-
+    def __init__(self,parent,participants,name,id,round):
+        super().__init__()
+        self.par=parent
+        self.round=round
         self.id=id
         self.name=name
         self.participants = participants
@@ -97,13 +147,18 @@ class group_insertion_widget(QWidget):
         self.table.setColumnCount(group_size+8)
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setVisible(False)
-        
 
         self.table.setItem(0,0,QTableWidgetItem())
         self.table.item(0,0).setFlags(Qt.ItemFlag.ItemIsSelectable)
         self.table.item(0,0).setText("Name")
 
-        field_list=["Siege","Gefechte","Quote","Treffer","Getroffen","Differenz","Platzierung"]
+        field_list=["Siege",
+            "Gefechte",
+            "Quote",
+            "Treffer",
+            "Getroffen",
+            "Differenz",
+            "Platzierung"]
         for i in range(7):
             self.table.setItem(0,group_size+i+1,QTableWidgetItem())
             self.table.item(0,group_size+i+1).setText(field_list[i])
@@ -112,8 +167,8 @@ class group_insertion_widget(QWidget):
             
             for j in range(1,group_size+1):
                 self.table.setItem(j,group_size+i+1,QTableWidgetItem())
-                self.table.item(j,group_size+i+1).setFlags(Qt.ItemFlag.ItemIsSelectable)
- 
+                self.table.item(j,group_size+i+1).setFlags(
+                                Qt.ItemFlag.ItemIsSelectable)
 
         for i in range(group_size):
             self.table.setItem(i+1,0,QTableWidgetItem())
@@ -134,21 +189,16 @@ class group_insertion_widget(QWidget):
         self.table.itemChanged.connect(self.val_changed)
 
         submit = QPushButton("Submit")
-        #hide = QPushButton("Hide")
         cancel = QPushButton("Cancel")
         button_wid=QWidget()
         button_wid.setLayout(QVBoxLayout())
         button_wid.layout().addWidget(submit)
-        #button_wid.layout().addWidget(hide)
         button_wid.layout().addWidget(cancel)
         self.setLayout(QHBoxLayout())
         self.layout().addWidget(button_wid)
         self.layout().addWidget(self.table)
 
-        
-
         submit.clicked.connect(self.submit_clicked)
-        #hide.clicked.connect(lambda : self.hide())
         cancel.clicked.connect(lambda : self.close())
 
         db_dict = db.find_one(name,query={"_id":self.id})
@@ -159,9 +209,8 @@ class group_insertion_widget(QWidget):
                         self.table.setItem(row,col,QTableWidgetItem())
                     self.table.item(row,col).setText(table[row-1][col-1])
 
-
-
     def val_changed(self):
+        #exclude logic to preliminary?
         check=True
         group_size=len(self.participants)
         for i in range(1,group_size+1):
@@ -198,10 +247,7 @@ class group_insertion_widget(QWidget):
                             ),reverse=True)
             for i in range(1,group_size+1):
                 self.table.item(ind[i-1],group_size+7).setText(str(i))
-
-                    
-
-
+           
     def submit_clicked(self):
         query = {"_id": self.id}
         table=[]
@@ -212,5 +258,25 @@ class group_insertion_widget(QWidget):
             table.append(table_inner)
 
         update ={"table":table}
+
+        for i in range(len(table)):
+            if not table[i][-1]:
+                break
+        else:
+            update["finished"]=True #type: ignore
+
         db.update_one(collection=self.name,query=query,update_dict=update)
         self.close()
+
+        if update["finished"]==True:
+            values=db.get_distinct_values(collection=self.name,key="finished")
+            if all(values):
+                if self.round != 1:
+                    preliminary_by_preliminary(self.name,round=self.round)
+                    self.par.parent().refresh()
+                if self.round ==1:
+                    create_elimination_round()
+
+            else:
+                return None
+            

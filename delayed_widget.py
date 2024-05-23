@@ -5,7 +5,9 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QComboBox,
     QHBoxLayout,
-    QDateEdit
+    QDateEdit,
+    QVBoxLayout,
+    QMessageBox
     )
 
 from dbmongo import db
@@ -54,19 +56,13 @@ class delayed_widget(QWidget):
         button_row.addWidget(cancel_button)
         layout.addRow(button_row)
 
-        
         submit_button.clicked.connect(self.submit_button_clicked)
         cancel_button.clicked.connect(self.cancel_button_clicked)
 
-        
     def cancel_button_clicked (self):
         self.close()
 
     def submit_button_clicked(self):
-
-        
-
-
         add_dict={
             "firstname":self.first_name_input.text(),
             "lastname":self.last_name_input.text(),
@@ -90,4 +86,36 @@ class delayed_widget(QWidget):
         db.insert("Fencer",add_dict)
         self.cancel_button_clicked()
 
+class delete_widget(QWidget):
+    def __init__(self):
+        super().__init__()
+        tourn_names=db.collection_names()
+        tourn_names.remove("Fencer")
+        self.setLayout(QVBoxLayout())
         
+
+        self.layout().addWidget(QComboBox())
+        self.layout().itemAt(0).widget().addItems(tourn_names)   
+        self.layout().addWidget(QPushButton("Löschen"))
+        self.layout().itemAt(1).widget().clicked.connect(
+            lambda : self.delete_collection(
+                        name=self.layout().itemAt(0).widget().currentText()
+                        )
+                    )
+
+        self.layout().addWidget(QPushButton("Abbruch"))
+        self.layout().itemAt(2).widget().clicked.connect(lambda : self.close())
+
+    def delete_collection(self,name):
+        msgbox = QMessageBox()
+        msgbox.setWindowTitle("Wettbewerblöschen")
+        msgbox.setText("Wollen Sie die Daten des Wettbewerbs wirklich löschen?")
+        msgbox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        ret = msgbox.exec()
+        if ret==1024:
+            self.layout().itemAt(0).widget().removeItem(
+                        self.layout().itemAt(0).widget().currentIndex()
+                        )
+            db.drop_collection(name)
+        elif ret ==4194304 | ret ==8388608:
+            ...
