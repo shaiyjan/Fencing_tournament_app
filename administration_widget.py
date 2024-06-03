@@ -2,13 +2,15 @@ from PySide6.QtWidgets import (
     QLayout,
     QGridLayout,
     QHBoxLayout,
+    QVBoxLayout,
     QPushButton,
     QComboBox,
     QWidget,
     QLabel,
     QLineEdit,
     QStackedWidget,
-    QSizePolicy)
+    QSizePolicy,
+    QTextEdit)
 from PySide6.QtCore import Qt
 
 from administration_buttons import paid_box,recipe_box,attest_box,attendance_box
@@ -71,9 +73,7 @@ class administation_layout(QGridLayout):
         self.addWidget(QLabel("Bezahlt"),1,4)
         self.addWidget(QLabel("Quittung"),1,5)
         self.addWidget(QLabel("Attest"),1,6)
-
-
-
+        self.addWidget(QLabel("Notiz"),1,7)
 
     def select_search_widget(self):
         if self.search_key.currentIndex() in [0,1,2]:
@@ -88,46 +88,58 @@ class administation_layout(QGridLayout):
 
     def button_submit_clicked(self):
         for row in range(2,self.rowCount()):
-            for col in range(7):
+            for col in range(self.columnCount()):
                 if self.itemAtPosition(row,col) and self.itemAtPosition(row,col).widget():
                     self.itemAtPosition(row,col).widget().deleteLater()
 
         key=self.selected_keys[self.search_key.currentIndex()]
 
-        if type(self.search_input.currentWidget()) == QLineEdit:
+        if type(self.search_input.currentWidget()) == QLineEdit: #type: ignore
             value = value= self.search_input.currentWidget().text()
-        elif type(self.search_input.currentWidget()) == QComboBox:
+        elif type(self.search_input.currentWidget()) == QComboBox: #type:ignore 
             value=self.search_input.currentWidget().currentText()
             if value=="Ja":
                 value="yes"
             elif value=="Nein":
                 value="no"
 
-        db_ret=read_collection(key=key,value = value)
+        db_ret=read_collection(key=key,value = value) #type: ignore
         
         db_ret=sorted(db_ret,key=lambda x : x ["lastname"])
         counter=2
         for it in db_ret:
             id=it["_id"]
-            person_name = QLabel(f"{it['lastname'].capitalize()}, {it['firstname']}")
-            club_name =  QLabel(f"{it['club']}")
-            comp_name = QLabel(f"{it['competition']}")
-            attan_box=attendance_box(id,True if it["attendance"]=="yes" else False)
-            pay_box=paid_box(id,True if it["paid"]=="yes" else False)
+            
             age=calculate_age(*it["dateofbirth"].strip().split("."))
-            recei_box = recipe_box(id,True if it["recipe"]=="yes" else False)
             if age <18:
                 attes_wid=attest_box(id,True if it["attest"]=="yes" else False)
             else:
                 attes_wid=QWidget()
             
-            self.addWidget(person_name,counter,0)
-            self.addWidget(club_name,counter,1)
-            self.addWidget(comp_name,counter,2)
-            self.addWidget(attan_box,counter,3)
-            self.addWidget(pay_box,counter,4)
-            self.addWidget(recei_box,counter,5)
-            self.addWidget(attes_wid,counter,6)
+            self.addWidget(
+                QLabel(f"{it['lastname'].capitalize()}, {it['firstname']}"),
+                counter,0)
+            self.addWidget(
+                QLabel(f"{it['club']}"),
+                counter,1)
+            self.addWidget(
+                QLabel(f"{it['competition']}"),
+                counter,2)
+            self.addWidget(
+                attendance_box(id,True if it["attendance"]=="yes" else False),
+                counter,3)
+            self.addWidget(
+                paid_box(id,True if it["paid"]=="yes" else False)
+                ,counter,4)
+            self.addWidget(
+                recipe_box(id,True if it["recipe"]=="yes" else False),
+                counter,5)
+            self.addWidget(
+                attes_wid,
+                counter,6)
+            self.addWidget(
+                note_button(id),
+                counter,7)
 
             counter+=1
 
@@ -143,7 +155,43 @@ class administation_layout(QGridLayout):
             except:
                 ...
         
-        
-                
+class note_button(QPushButton):
+    def __init__(self,id):
+        super().__init__()
+        self.id=id
+        self.setText("Notiz")
+        self.clicked.connect(self.note_button_clicked)
 
-    
+    def note_button_clicked(self):
+        global x
+        x=note_widget(id=self.id)
+        x.show()
+        
+
+class note_widget(QWidget):
+    def __init__(self,id):
+        super().__init__()
+
+        self.id=id
+        fencer= db.find_one(
+            collection="Fencer",
+            query={"_id":id})
+
+        self.setLayout(QGridLayout())
+        text_widget= QTextEdit()
+        text_widget.setText(fencer["note"])
+        submit_button = QPushButton("Submit")#
+        submit_button.clicked.connect(lambda: self.submit_clicked(text_widget.toPlainText()))
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.close)
+
+        self.layout().addWidget(submit_button,0,0) #type: ignore
+        self.layout().addWidget(cancel_button,1,0)  #type: ignore
+        self.layout().addWidget(text_widget,0,1,1,3) #type: ignore
+
+
+    def submit_clicked(self,string):
+        db.update_one(collection="Fencer",
+            query={"_id":self.id},
+            update_dict={"note":string})
+        self.close()

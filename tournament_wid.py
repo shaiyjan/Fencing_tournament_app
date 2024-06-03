@@ -60,11 +60,12 @@ class tournament_wid(QWidget):
         else:
             if phase_box_str.startswith("Vorrunde"):
                 query={"type":"preliminary","round": int(phase_box_str[9:])}
-            elif phase_box_str.startswith("K.O."):
+            else:
+            #elif phase_box_str.startswith("K.O."):
                 query={"type":"elimination",
                     "round": int(phase_box_str[phase_box_str.find(" - ")+3:])}
 
-        matches=db.find_all(collection=self.name,query=query) #type: ignore
+        matches=db.find_all(collection=self.name,query=query)
         
         for row in range(2,self.layout().rowCount()): #type: ignore
             for col in range(self.layout().columnCount()): #type: ignore
@@ -122,10 +123,13 @@ class elimination_button(QPushButton):
         self.layout().itemAtPosition(0,0).addWidget(LightWidget(self.color)) #type:ignore
         self.layout().itemAtPosition(0,0).addWidget(    #type:ignore
                         QLabel(name+" Runde: " + str(match["round"])))
-        self.layout().addWidget(QLabel(match["fencer1"]["lastname"]),1,0) #type:ignore
-        self.layout().addWidget(QLabel(match["score1"]),1,1) #type:ignore
-        self.layout().addWidget(QLabel(match["fencer2"]["lastname"]),2,0) #type:ignore
-        self.layout().addWidget(QLabel(match["score2"]),2,1) #type:ignore
+        self.layout().addWidget(QLabel(str(match["fencer1"]["lastname"])),1,0) #type:ignore
+        self.layout().addWidget(QLabel(str(match["score1"])),1,1) #type:ignore
+        if match["fencer2"]:
+            self.layout().addWidget(QLabel(str(match["fencer2"]["lastname"])),2,0) #type:ignore
+            self.layout().addWidget(QLabel(str(match["score2"])),2,1) #type:ignore
+        else:
+            self.layout().addWidget(QLabel("None"),2,0)  #type:ignore
 
     def click(self):
         wid=elim_insertion_widget(
@@ -206,7 +210,7 @@ class elim_insertion_widget(QTableWidget):
             print(query)
             other_match=db.find_one(collection=self.name,
                                 query=query)
-            if other_match["finished"]==True:
+            if self.match["round"]!=2 and other_match["finished"]==True:
                 next_match(self.name,self.match,other_match)
 
 class group_button(QPushButton):

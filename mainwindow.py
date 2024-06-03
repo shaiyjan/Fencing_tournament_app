@@ -156,10 +156,11 @@ def read_to_db(files):
         with open(file,encoding="UTF-16 LE") as f:
             reader = csv.DictReader(f,delimiter=";")
             for line in reader:
-                line["recipe"]="no"
-                line["attendance"]="no"
-                line["attest"]="no"
+                line['recipe']="no"
+                line['attendance']="no"
+                line['attest']="no"
                 line['id'] = line['\ufeffid']
+                line['note'] =""
                 del line['\ufeffid']
                 list_of_dict.append(line)
 
