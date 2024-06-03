@@ -100,6 +100,7 @@ class MainWindow(QMainWindow):
 
         tournament_names= db.collection_names()
         tournament_names.remove("Fencer")
+        tournament_names.remove("Organisation")
         self.tournament_actions=[]
         for ind in range(len(tournament_names)):
             tour=tournament_names[ind]

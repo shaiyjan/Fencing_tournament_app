@@ -7,20 +7,27 @@ from dbmongo import db
 id_rank=namedtuple("id_rank","id rank")
 
 
-def preliminary_by_preliminary(tournament : str, round: int):
+def generate_ranking(tournament : str, round: int):
 
-    org_data=db.find_one(collection="Organisation",query={"name":tournament})
     group_dict = [*db.find_all(collection=tournament,query={"type":"preliminary","round":round})]
-    person_score_list=[]
+    participants_by_rank=[]
     for group in group_dict:
         persons=group["group"]
         table=group["table"]
         for i in range(len(persons)):
-            person_score_list.append([persons[i],*table[i][-7:None]])
+            participants_by_rank.append([persons[i],*table[i][-7:None]])
 
-    person_score_list.sort(key= lambda el: (float(el[3].strip("%")),int(el[-2])),reverse=True)
+    participants_by_rank.sort(key= lambda el: (float(el[3].strip("%")),int(el[-2])),reverse=True)
+    
+    return [el[0] for el in participants_by_rank]
 
-    group_am=len(group_dict)
+def preliminary_by_preliminary(tournament : str, round: int):
+
+    org_data=db.find_one(collection="Organisation",query={"name":tournament})
+
+    person_score_list=generate_ranking(tournament=tournament,round=round)
+
+    group_am=len(person_score_list)
     new_groups=[]
     for i in range(group_am):
         new_groups.append([])

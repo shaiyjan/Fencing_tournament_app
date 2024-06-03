@@ -5,7 +5,7 @@ import pymongo
 class db:
     client = pymongo.MongoClient("localhost:27017")
     database = client.get_database("Tournament")
-    collection= database.get_collection("Fencer")
+    #collection= database.get_collection("Fencer")
 
     @classmethod
     def collection_names(cls):
@@ -40,9 +40,9 @@ class db:
         collection.update_one(query, {"$set":update_dict})
 
     @classmethod
-    def get_distinct_values(cls,collection:str,key:str) -> list:
+    def get_distinct_values(cls,collection:str,key:str,filter={}) -> list:
         collection= cls.database.get_collection(collection)
-        return collection.distinct(key)
+        return collection.distinct(key,filter)
 
     @classmethod
     def drop_collection(cls,collection):

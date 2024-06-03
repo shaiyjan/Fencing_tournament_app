@@ -10,12 +10,12 @@ from PySide6.QtWidgets import (
     QLayout,
     QTableWidgetItem)
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QPainter #type:ignore
 
 from dbmongo import db
 
 from preliminary import preliminary_by_preliminary
-from elimination import create_elimination_round
+from elimination import create_elimination_round, next_match
 
 
 class tournament_wid(QWidget):
@@ -61,7 +61,8 @@ class tournament_wid(QWidget):
             if phase_box_str.startswith("Vorrunde"):
                 query={"type":"preliminary","round": int(phase_box_str[9:])}
             elif phase_box_str.startswith("K.O."):
-                query={"type":"eliminarion","round": int(phase_box_str[4:])}
+                query={"type":"elimination",
+                    "round": int(phase_box_str[phase_box_str.find(" - ")+3:])}
 
         matches=db.find_all(collection=self.name,query=query) #type: ignore
         
@@ -74,28 +75,31 @@ class tournament_wid(QWidget):
 
         for ind,match in enumerate(matches):
             if match["type"]=="preliminary":
-                participants = [el for el in match['group']]
                 button = group_button(name=self.name,
                     parent=self,
-                    group_number=match["group_number"], #not right!
-                    group_id_bson=match["_id"],
-                    participants=participants,
-                    round=match["round"])
+                    match=match)
+                button.setFixedHeight(150)
+                button.setFixedWidth(200)
+                self.layout().addWidget(button,2+ind // 4,ind % 4) #type: ignore
+            elif match["type"]=="elimination":
+                button = elimination_button(name=self.name,
+                            parent=self,
+                            match=match)
                 button.setFixedHeight(150)
                 button.setFixedWidth(200)
                 self.layout().addWidget(button,2+ind // 4,ind % 4) #type: ignore
 
-
     def refresh(self):
         self.phase_box.clear()
-
-        prel_list = [*db.find_all(collection=self.name,query={"type":"preliminary"})]
-        elim_list = [*db.find_all(collection=self.name,query={"type":"elimination"})]       
+   
+        prel_list= db.get_distinct_values(collection=self.name,key="round",filter={"type":"preliminary"})    
+        elim_list= db.get_distinct_values(collection=self.name,key="round",filter={"type":"elimination"})
+        self.phase_box.addItems(
+            set(["Vorrunde "+str(el) for el in prel_list])) #type: ignore
 
         self.phase_box.addItems(
-            set(["Vorrunde "+str(el["round"]) for el in prel_list])) #type: ignore
-        self.phase_box.addItems(
-            set(["K.O. - "+str(el["round"]) for el in elim_list])) #type: ignore
+            set(["K.O. - "+str(el) for el in elim_list])) #type:ignore
+
         self.phase_box.addItem("Alle")
 
         for row in range(2,self.layout().rowCount()): #type: ignore
@@ -105,19 +109,129 @@ class tournament_wid(QWidget):
                 except:
                     ...
 
+class elimination_button(QPushButton):
+    def __init__(self,name,parent,match):
+        super().__init__()
+        self.par=parent
+        self.name=name
+        self.match=match
+        self.setLayout(QGridLayout())
+        self.clicked.connect(self.click)
+        self.layout().addLayout(QHBoxLayout(),0,0,1,2) #type: ignore
+        self.color= Qt.green if match["finished"] else Qt.red #type: ignore
+        self.layout().itemAtPosition(0,0).addWidget(LightWidget(self.color)) #type:ignore
+        self.layout().itemAtPosition(0,0).addWidget(    #type:ignore
+                        QLabel(name+" Runde: " + str(match["round"])))
+        self.layout().addWidget(QLabel(match["fencer1"]["lastname"]),1,0) #type:ignore
+        self.layout().addWidget(QLabel(match["score1"]),1,1) #type:ignore
+        self.layout().addWidget(QLabel(match["fencer2"]["lastname"]),2,0) #type:ignore
+        self.layout().addWidget(QLabel(match["score2"]),2,1) #type:ignore
+
+    def click(self):
+        wid=elim_insertion_widget(
+            parent=self,
+            match=self.match,
+            name=self.name
+            )
+        wid.show()
+
+class elim_insertion_widget(QTableWidget):
+    def __init__(self,parent,match,name):
+        super().__init__()
+        self.par=parent
+        self.id=match["_id"]
+        self.name=name
+        self.match=match
+
+        self.table= QTableWidget()
+
+        self.table.setRowCount(3)
+        self.table.setColumnCount(3)
+        self.table.verticalHeader().setVisible(False)
+        self.table.horizontalHeader().setVisible(False)
+
+        if match["finished"]==True:
+            self.table.setItem(1,2,QTableWidgetItem())
+            self.table.setItem(2,2,QTableWidgetItem())
+            self.table.item(1,2).setText(str(match["score1"]))
+            self.table.item(2,2).setText(str(match["score2"]))
+
+        
+
+        self.table.setItem(0,0,QTableWidgetItem())
+        self.table.item(0,0).setFlags(Qt.ItemFlag.ItemIsSelectable)
+        self.table.item(0,0).setText(self.name)
+        self.table.setItem(0,1,QTableWidgetItem())
+        self.table.item(0,1).setFlags(Qt.ItemFlag.ItemIsSelectable)
+        self.table.item(0,1).setText(str("Runde: "+ str(match["round"])))
+        self.table.setItem(0,2,QTableWidgetItem())
+        self.table.item(0,2).setFlags(Qt.ItemFlag.ItemIsSelectable)
+        self.table.item(0,2).setText(str("Platzierung:"+str(match["placing"])))
+        self.table.setItem(1,0,QTableWidgetItem())
+        self.table.setSpan(1,0,1,2)
+        self.table.item(1,0).setFlags(Qt.ItemFlag.ItemIsSelectable)
+        self.table.item(1,0).setText(match["fencer1"]["lastname"]+","+match["fencer1"]["firstname"])
+        self.table.setItem(2,0,QTableWidgetItem())
+        self.table.setSpan(2,0,1,2)
+        self.table.item(2,0).setFlags(Qt.ItemFlag.ItemIsSelectable)
+        self.table.item(2,0).setText(match["fencer2"]["lastname"]+","+match["fencer2"]["firstname"])
+
+        submit = QPushButton("Submit")
+        cancel = QPushButton("Cancel")
+        button_wid=QWidget()
+        button_wid.setLayout(QVBoxLayout())
+        button_wid.layout().addWidget(submit)
+        button_wid.layout().addWidget(cancel)
+        self.setLayout(QHBoxLayout())
+        self.layout().addWidget(button_wid)
+        self.layout().addWidget(self.table)
+
+        submit.clicked.connect(self.submit_clicked)
+        cancel.clicked.connect(lambda : self.close())
+
+    def submit_clicked(self):
+        query = {"_id": self.id}
+
+        if self.table.item(1,2).text() and self.table.item(2,2).text():
+            update={"score1":self.table.item(1,2).text(),
+                    "score2":self.table.item(2,2).text(),
+                    "finished":True}
+
+            db.update_one(collection=self.name,query=query,update_dict=update)
+
+            query= {"round":self.match["round"],
+                    "placing":
+                            min((self.match["round"]>>1)-1-self.match["placing"],
+                                    self.match["placing"])}
+            print(query)
+            other_match=db.find_one(collection=self.name,
+                                query=query)
+            if other_match["finished"]==True:
+                next_match(self.name,self.match,other_match)
+
 class group_button(QPushButton):
-    def __init__(self,name,parent,group_number,group_id_bson,participants:list,round):
+    def __init__(self,name,parent,match):
         super().__init__(parent=parent)
         self.round=round
         self.name=name 
-        self.round_name="Vorrunde "+ str(round)
-        self.bson_id=group_id_bson
-        self.participants=participants
+        self.match=match
+        self.round=match["round"]
+        self.round_name="Vorrunde "+ str(match["round"])
+        self.bson_id=match["_id"]
+        self.participants=match["group"]
         self.setLayout(QVBoxLayout())
-        self.layout().addWidget(QLabel(self.round_name))
-        self.layout().addWidget(QLabel("Gruppe: " + str(group_number)))
+        self.layout().addWidget(QWidget())
+        self.layout().itemAt(0).widget().setLayout(QHBoxLayout())
         
-        for el in participants:
+        
+        self.color= Qt.green if match["finished"] else Qt.red #type: ignore
+        self.layout().itemAt(0).widget().layout().addWidget(LightWidget(self.color))
+        self.layout().itemAt(0).widget().layout().addWidget(QLabel(self.round_name))
+        self.layout().itemAt(0).widget().layout().addStretch() #type:ignore
+
+        self.layout().addWidget(QLabel("Gruppe: " + str(match["group_number"])))
+        
+        for el in self.participants:
             self.layout().addWidget(QLabel(el["lastname"].capitalize() +","+el["firstname"].capitalize()))
         self.clicked.connect(self.click)
         
@@ -275,8 +389,22 @@ class group_insertion_widget(QWidget):
                     preliminary_by_preliminary(self.name,round=self.round)
                     self.par.parent().refresh()
                 if self.round ==1:
-                    create_elimination_round()
+                    create_elimination_round(tournament=self.name)
+                    self.par.parent().refresh()
 
             else:
                 return None
             
+class LightWidget(QWidget):
+    def __init__(self, color):
+        super().__init__()
+        self.color = color
+        self.heightForWidth(True)
+        self.setFixedWidth(10)
+        self.setFixedHeight(10)
+
+    def paintEvent(self, e):
+        with QPainter(self) as painter:
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setBrush(self.color)
+            painter.drawEllipse(0, 0, self.width(), self.height())
