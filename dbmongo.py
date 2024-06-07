@@ -5,7 +5,11 @@ import pymongo
 class db:
     client = pymongo.MongoClient("localhost:27017")
     database = client.get_database("Tournament")
-    #collection= database.get_collection("Fencer")
+
+    @classmethod
+    def del_one(cls,collection,query):
+        collection= cls.database.get_collection(collection)
+        collection.delete_one(query)
 
     @classmethod
     def collection_names(cls):

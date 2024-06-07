@@ -10,14 +10,30 @@ def create_elimination_round(tournament):
         particpants_by_rank=participants_by_rank)
 
 def next_match(name,prev_match_1,prev_match_2):
-    winner_match_1 = prev_match_1["fencer1"] if prev_match_1["score1"]>prev_match_1["score2"] else prev_match_1["fencer2"]
-    winner_match_2 = prev_match_2["fencer1"] if prev_match_2["score1"]>prev_match_2["score2"] else prev_match_2["fencer2"]
+    winner_match_1 = prev_match_1["fencer1"] if (
+        not prev_match_1["score2"] or int(prev_match_1["score1"])>int(prev_match_1["score2"])
+                                    ) else prev_match_1["fencer2"]
+    winner_match_2 = prev_match_2["fencer1"] if (
+        not prev_match_2["score2"] or int(prev_match_2["score1"])>int(prev_match_2["score2"])
+                                    ) else prev_match_2["fencer2"]
 
+    match_round=prev_match_1["round"]>>1
+    placing=min(prev_match_1["placing"],prev_match_2["placing"])
+
+    next_match = db.find_one(collection=name,query={"placing":placing,"round":match_round})
+
+    if next_match:
+        if next_match["fencer1"] not in [winner_match_1,winner_match_2] or next_match["fencer2"] not in  [winner_match_1,winner_match_2]:
+            db.del_one(collection=name,
+                query={"_id":next_match["_id"]})
+        else:
+            return None
+    
     match(tournament=name,
         fencer_A=winner_match_1,
         fencer_B=winner_match_2,
-        match_round=prev_match_1["round"]>>1,
-        placing=max(prev_match_1["placing"],prev_match_2["placing"]),
+        match_round=match_round,
+        placing=placing,
         elim_type=prev_match_1["type"])
 
 

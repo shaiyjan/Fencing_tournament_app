@@ -36,6 +36,13 @@ class attest_box(admin_button):
         self.setChecked(checked)
         self.checkStateChanged.connect(lambda : box_update(self.id,self.isChecked(),"attest"))
     
+class referee_box(admin_button):
+    def __init__(self, id,checked):
+        super().__init__()
+        self.id=id
+        self.setChecked(checked)
+        self.checkStateChanged.connect(lambda : box_update(self.id,self.isChecked(),"referee"))
+    
 
 def box_update(id,checked_bool,field):
     db.update_one("Fencer",query={"_id": id},update_dict={ field: "yes" if checked_bool else "no"})

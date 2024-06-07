@@ -55,15 +55,15 @@ class tournament_wid(QWidget):
             name_labels.append(label)
 
         phase_box_str=self.phase_box.currentText()
-        if phase_box_str=="Alle":
-            query={}
+
+        if phase_box_str.startswith("Vorrunde"):
+            query={"type":"preliminary",
+            "round": int(phase_box_str[phase_box_str.find(" ")+1:])}
+        elif phase_box_str.startswith("K.O."):
+            query={"type":"elimination",
+                "round": int(phase_box_str[phase_box_str.find(" - ")+3:])}
         else:
-            if phase_box_str.startswith("Vorrunde"):
-                query={"type":"preliminary","round": int(phase_box_str[9:])}
-            else:
-            #elif phase_box_str.startswith("K.O."):
-                query={"type":"elimination",
-                    "round": int(phase_box_str[phase_box_str.find(" - ")+3:])}
+            query={}
 
         matches=db.find_all(collection=self.name,query=query)
         
@@ -178,7 +178,8 @@ class elim_insertion_widget(QTableWidget):
         self.table.setItem(2,0,QTableWidgetItem())
         self.table.setSpan(2,0,1,2)
         self.table.item(2,0).setFlags(Qt.ItemFlag.ItemIsSelectable)
-        self.table.item(2,0).setText(match["fencer2"]["lastname"]+","+match["fencer2"]["firstname"])
+        if match["fencer2"]:
+            self.table.item(2,0).setText(match["fencer2"]["lastname"]+","+match["fencer2"]["firstname"])
 
         submit = QPushButton("Submit")
         cancel = QPushButton("Cancel")
@@ -207,7 +208,6 @@ class elim_insertion_widget(QTableWidget):
                     "placing":
                             min((self.match["round"]>>1)-1-self.match["placing"],
                                     self.match["placing"])}
-            print(query)
             other_match=db.find_one(collection=self.name,
                                 query=query)
             if self.match["round"]!=2 and other_match["finished"]==True:

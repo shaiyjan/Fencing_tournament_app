@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.app = app
         self.setWindowTitle("Turnier-Organisator")
-        self.setMinimumSize(QSize(800,300))
+        self.setMinimumSize(QSize(1050,500))
 
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("&Menu")
@@ -99,8 +99,11 @@ class MainWindow(QMainWindow):
             self.toolbar.removeAction(self.tournament_actions.pop())
 
         tournament_names= db.collection_names()
-        tournament_names.remove("Fencer")
-        tournament_names.remove("Organisation")
+        try:
+            tournament_names.remove("Fencer")
+            tournament_names.remove("Organisation")
+        except ValueError:
+            pass
         self.tournament_actions=[]
         for ind in range(len(tournament_names)):
             tour=tournament_names[ind]
@@ -161,6 +164,7 @@ def read_to_db(files):
                 line['attest']="no"
                 line['id'] = line['\ufeffid']
                 line['note'] =""
+                line['referee']="no"
                 del line['\ufeffid']
                 list_of_dict.append(line)
 
